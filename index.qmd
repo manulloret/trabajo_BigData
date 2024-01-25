@@ -1,0 +1,30 @@
+---
+title: Canciones destacadas de Spotify 2023 y sus características             #- Hay que cambiarlo
+image: imagenes/mi_imagen.jpg      #- poned una foto vuestra
+about:
+  template: trestles        #- {jolla, solana, ...}
+  image-width: 16em         #- https://cybmeta.com/em-y-rem
+  image-shape: round     #- {rectangle, round, rounded}
+  links:
+    - icon: envelope
+      text: e-mail
+      url: "mailto:llopima@alumni.uv.es"            #- pon tu e-mail
+    - icon: linkedin
+      text: LinkedIn
+      href: https://linkedin.com/<tu-usuario-Linkedin>     #- linkedin
+    - icon: github
+      text: Github
+      href: https://github.com/manulloret         #- Github
+---
+        
+Hola, soy Manuel Lloret Pineda
+      
+Esta web sirve para presentar el trabajo individual para la asignatura "Programación y manejo de datos en la era Del Big Data", optativa de GECO en la Facultad de Economía de la Universitat de València.
+
+La web de la asignatura está [aquí](https://perezp44.github.io/intro-ds-23-24-web/){target="_blank"} y los trabajos de mis compañeros de curso puedes verlos [aquí](https://perezp44.github.io/intro-ds-23-24-web/05-trabajos-estudiantes.html){target="_blank"}.
+
+
+Mi trabajo lleva por título : "Canciones destacadas de Spotify 2023 y sus características". El objetivo es repasar lo que sé de programación analizando los datos que he ido encontrando y sacando algunos gráficos mientras hago breaks de estudio en época de exámenes. También indago en cosas que me han llamado la atención.
+
+
+El trabajo puede verse [aquí](my_trabajo_BigData.html).
