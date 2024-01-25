@@ -18,4 +18,4 @@ El autor del trabajo soy yo,  Manuel Lloret Pineda (llopima@alumni.uv.es).
 El título del trabajo es "Canciones destacadas de Spotify 2023 y sus características".  
 En el trabajo trato de repasar lo que sé de programación analizando los datos que he ido encontrando y sacando algunos gráficos mientras hago breaks de estudio en época de exámenes. También indago en cosas que me han llamado la atención.
 
-La versión final del trabajo puede visualizarse en: https://manulloret.github.io/trabajo_BigData_individual/.
+La versión final del trabajo puede visualizarse en: https://manulloret.github.io/trabajo_BigData.
