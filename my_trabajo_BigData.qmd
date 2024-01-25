@@ -1,0 +1,415 @@
+---
+title: "Canciones destacadas de Spotify 2023 y sus características"
+description: En este trabajo individual trato de repasar lo que sé de programación analizando los datos que he ido encontrando y sacando algunos gráficos mientras hago breaks de estudio en época de exámenes. También indago en cosas que me han llamado la atención.
+author:   
+  - Manuel Lloret Pineda (llopima@alumni.uv.es)
+date: 2024-01-25                         
+categories: 
+  - trabajo BigData
+  - Spotify
+  - Éxitos2023
+  - Taylor Swift
+image: "./imagenes/imagen_01.png"
+title-block-banner: true 
+title-block-banner-color: "green"
+toc-location: left
+toc-depth: 3
+smooth-scroll: true
+format: 
+  html:
+    backgroundcolor: "#FFFFFF"
+    embed-resources: true
+    link-external-newwindow: true
+code-tools: true
+code-link: true
+---
+
+## Introducción y Datos
+
+![Logo Spotify](./imagenes/logo_spotify.png)
+
+**INTRODUCCIÓN**
+
+Al ser un trabajo voluntario de tema libre y yo indeciso, he decidido hacerle un poco la pelota al profesor y hacerlo sobre música.
+El trabajo esta dividido en 2 partes:
+Primero trata sobre las canciones más escuchadas en Spotify en 2023 y sus características más importantes. Luego, para cambiar un poco de tema y pelearme con otros datos, sobre Taylor Swift.
+La idea de este trabajo es repasar todo lo que sé de programación, sacando varios gráficos de diferentes tipos para practicar y calentarme un poco la cabeza con R. No trato de sacar muchas conclusiones o descubrir un algoritmo de música mainstream para hacerme famoso ni nada por el estilo.
+ 
+**DATOS**
+
+Buscando datos por internet, he encontrado por Kaggle unos datos muy chulos de Spotify 2023 que me han interesado y, además, me han dado ganas de trabajar con ellos a ver que consigo sacar. Si no me equivoco, hay un grupo que hizo su trabajo tambien de música (no he hablado con ellos sobre que datos han usado, supongo que algunos muy parecidos ya que estos eran fáciles de encontrar), pero como me han gustado y cada uno tiene su forma de programar y limpiar los datos, he decidido usarlos.
+Por otro lado, mirando las estadísticas de Soptify 2023, me sorprendió mucho que Taylor Swift tuviera unos números tan buenos a pesar de que sus canciones son mucho más antiguas que las de su competencia y CON MUCHA SUERTE (y porque es muy famosa supongo), encontré también por Kaggle algunos datos de ella y sus canciones medidas con algunas características cualitativas muy muy interesantes como la bailabilidad, la energía o felicidad que transmite y detalles musicales cuantitativos cómo la velocidad, el tiempo, el volumen de la canción... Ya veremos más adelante en el trabajo si todas estas características tienen alguna correlación con el éxito de la cantante o no.
+
+Por último, un detalle de este trabajo es que al descargar los datos me salían todos en la misma columna y separados por comas (en vez de haber diferentes columnas). No entendía porque al principio no me salía nada y me quería morir ya que por fín había encontrado unos datos que me gustaban. Menos mal que me dí cuenta y supe arreglarlo. Para quién lea esto: MUCHO CUIDADO CON LOS DATOS DESCARGADOS DE INTERNET Y CONCRETAMENTE DEL KAGGLE, TE TIENES QUE PELEAR BASTANTE CON ELLOS HASTA QUE LOGRES ARREGLARLOS Y HACERLOS "UTILIZABLES".
+
+Los datos se pueden cargar en la memoria de de R/RStudio de esta forma:
+
+```{r}
+#TODOS LOS PAQUETES QUE VAMOS A UTILIZAR
+
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(DT) 
+library(plotly)
+library(scales) 
+library(ggrepel) #install.packages("ggrepel")
+library(corrplot) #install.packages("corrplot")
+library(fmsb) #install.packages("fmsb")
+library(dplyr)
+
+# CARGAMOS LOS DATOS QUE POSTERIORMENTE TRANSFORMAREMOS PARA PODER ANALIZARLOS MEJOR
+
+df_spotify_2023 <- rio::import("./datos/spotify_2023.xlsx")
+df_taylorswift <- rio::import("./datos/spotify_taylorswift.xlsx")
+
+#Limpiamos los datos para poderlos utilizar
+df_spotify_2023$streams <- as.numeric(gsub("[^0-9]", "", df_spotify_2023$streams))
+df_spotify_2023$in_deezer_playlists <- as.numeric(gsub("[^0-9]", "", df_spotify_2023$in_deezer_playlists))
+df_spotify_2023 <- df_spotify_2023 %>%
+  rename(artist_name = `artist(s)_name`)
+df_spotify_2023 <- df_spotify_2023 %>%
+  rename(danceability = `danceability_%`, energy = `energy_%`)
+df_spotify_2023 <- df_spotify_2023 %>%
+  rename(instrumentalness = `instrumentalness_%`, speechiness = `speechiness_%`)
+df_spotify_2023$instrumentalness <- as.numeric(df_spotify_2023$instrumentalness)
+df_spotify_2023$speechiness <- as.numeric(df_spotify_2023$speechiness)
+
+
+```
+
+---
+
+## Empezamos con el trabajo 
+
+![foto muy chula](./imagenes/imagen_portada.jpg)
+
+Que menos que empezar con esta foto tan chula (por si acaso el trabajo no lo es tanto jajajaj) (es mentira, esta muy bien)
+
+---
+
+## Top 25 canciones más escuchadas
+
+Para empezar, esta tabla muestra las canciones con más streams. Es una tabla básica pero a su vez muy interactiva e interesante.
+He decidido coger 25 canciones para darle uso a la tabla, pero tal y como la he hecho podria haber puesto muchísimas más y darle mucho más uso, esa es la gracia y por lo que me ha gustado tanto (si buscas por internet, se pueden quedar muuuy guays). Puedes cambiar el orden tanto por streams, como por orden alfabético e invertirlos (es decir, de menos a más escuchadas o de la Z a la A). Además, le he metido cosas que me han parecido útiles como que se pueden buscar los nombres de las canciones y elegir de cuántas en cuántas canciones te muestra por página, que nunca viene mal.
+
+```{r}
+top25_canciones <- head(df_spotify_2023[order(-df_spotify_2023$streams), ], 25) # Top 25 de canciones con más streams
+
+top25_canciones$Numero <- seq_len(nrow(top25_canciones)) # Columna para numerarlos
+
+# Creo la tabla interactiva con datatable
+tabla_top25canciones <- datatable(
+  top25_canciones[, c("Numero", "track_name", "streams")],
+  options = list(
+    paging = TRUE,  # Paginas
+    lengthMenu = c(10, 25, 50),  # Definir longitud de página
+    searching = TRUE,  # Búsqueda
+    ordering = TRUE,  
+    columnDefs = list(
+      list(className = 'dt-center', targets = c(1, 2)),  # Centrar las columnas
+      list(orderable = FALSE, targets = 0) 
+    )
+  ),
+  caption = "Top 25 de Canciones con Más Streams"  # Título
+)
+# Mostrar la tabla
+tabla_top25canciones
+
+```
+
+Para que no sea todo bonito, no he podido quitarle a la izquierda del todo el número de la fila en que se encuentra la canción en el dataframe.
+Una cosa curiosa de ser tu el que programa, es que te vas dando cuenta de cosas de los datos... Yo en este caso echo en falta canciones exitosas de este año (que a lo mejor no llevan desde enero y por lo tanto tienen menos streams). Me da que pensar que los medios de comunicación pueden hacer muchas trampas...
+
+---
+
+## TOP 25 canciones NUEVAS más escuchadas en 2023 
+
+Ahora SÍ, las canciones más famosas del año, las que llevo escuchando todo este año, muy buenos temazos.
+
+```{r}
+
+top25canciones_2023 <- df_spotify_2023 %>%  
+  filter(released_year == 2023) %>%
+  head(25) %>%
+  arrange(desc(streams))
+
+top25canciones_2023$Numero <- seq_len(nrow(top25canciones_2023)) 
+
+tabla_top25canciones_2023 <- datatable(
+  top25canciones_2023[, c("track_name", "streams")],
+  options = list(
+    paging = TRUE,  
+    lengthMenu = c(10, 25, 50),  
+    searching = TRUE,  
+    ordering = TRUE,  
+    columnDefs = list(
+      list(className = 'dt-center', targets = c(1, 2)), 
+      list(orderable = FALSE, targets = 0)  
+    )
+  ),
+  caption = "Top 25 de Canciones (2023) con Más Streams"
+)
+
+# Mostrar la tabla
+tabla_top25canciones_2023
+
+```
+
+Pd: Esta se ha quedado mejor, solo aparecen los números de las posiciones de la canción más escuchada a la que menos.
+
+---
+
+## TOP 15 artistas más escuchados
+
+Ahora le toca al turno de los artistas, como ya he hecho una tabla, ahora un grafico de pastel comprarando los artistas 15 con más streams.
+
+```{r}
+
+# Aquí agrupo al top 15 de artistas con mas streams
+top_artistas <- df_spotify_2023 %>%
+  group_by(artist_name) %>%
+  summarise(total_streams = sum(streams)) %>%
+  arrange(desc(total_streams)) %>%
+  head(15)
+
+# Convertir los streams a millones
+top_artistas$total_streams_millions <- top_artistas$total_streams / 1e6
+
+# Aquí hago el gráfico de pastel y lo hago interactivo con plotly
+pastel_top15artistas <- plot_ly(top_artistas, labels = ~artist_name, values = ~total_streams_millions, type = "pie",
+        textinfo = "percent+label", insidetextorientation = "radial",
+        title = "Top 10 Artistas Más Escuchados en Spotify") %>%
+  layout(showlegend = FALSE)
+
+# Esto lo he encontrado: Formatea los números en el eje y cuando se pasa el ratón
+pastel_top15artistas <- pastel_top15artistas %>%
+  layout(hoverlabel = list(bgcolor = "white", font = list(family = "Arial, sans-serif", size = 18),
+                           bordercolor = "black", namelength = -1),
+         yaxis = list(tickformat = "s", hoverformat = ",.2f"))
+
+# Mostrar el gráfico
+pastel_top15artistas
+```
+
+Cuando pasas el ratón por encima te dice los millones de streams que tiene el artista. Como curiosidad, antes salía un número enorme multiplicado por un "e" elevado. Buscando he encontrado "library(scales)" y más o menos lo he arreglado. Siguen saliendo muchos decimales, pero ya he peleado demasiado con este gráfico y la verdad que me he rendido, me conformo con todo lo que he logrado simplificar el número ese tan grande que salía antes. 
+
+---
+
+## TOP 30 artistas comparado con OTHERS
+
+Este no tiene mucha cosa, era solo por curiosidad de comparar el top 30 de artistas con más streams del mundo con lo que representaban todos los demás.
+
+```{r}
+
+top_artistas <- df_spotify_2023 %>%
+  group_by(artist_name) %>%
+  summarise(total_streams = sum(streams)) %>%
+  arrange(desc(total_streams))
+
+# Elijo a los primeros 30 artistas y agrupo el resto con el nombre de "otros"
+top_30_artistas <- top_artistas %>%
+  mutate(artist_grouped = ifelse(row_number() <= 30, as.character(artist_name), "Otros")) %>%
+  group_by(artist_grouped) %>%
+  summarise(total_streams = sum(total_streams))
+
+# Esto es igual que antes, grafico pastel + plotly
+artistas_vs_others <- plot_ly(top_30_artistas, labels = ~artist_grouped, values = ~total_streams, type = "pie",
+        textinfo = "percent+label", insidetextorientation = "radial",
+        title = "Top 10 Artistas Más Escuchados en Spotify con 'Otros'") %>%
+  layout(showlegend = FALSE)
+
+# Mostrar el gráfico
+artistas_vs_others
+```
+
+No iba a ponerlo, pero este es un claro ejemplo de que con la programación puedes ir curioseando y sacando datos que te interesen y encima fiables (porque los he hecho yo claro).
+Si no llega a ser por esto, nunca habría sabido (ni yo ni las personas que lean este trabajo) que el top 30 de artistas más escuchados abarca el 33.7% de toda la música escuchada en spotify. Me parece muchísimo ya que son solo 30 artistas.
+
+---
+
+## Relación entre la BAILABILIDAD y la ENERGÍA
+
+Dejando un poco atrás los TOPs y adentrándonos en las características, he decidido hacer un gráfico plotly de burbujas para relacionar las dos características más interesantes que he visto: bailabilidad y energía. No pensaba que una canción se podía medir así y encima las dos tienen que ver la una y la otra.
+
+```{r}
+
+df_spotify_clean <- na.omit(df_spotify_2023[, c("danceability", "energy", "track_name", "streams")])
+
+# Gráfico de burbujas Bailabilidad vs Energía
+burbujas_bailabilidad_energia <- plot_ly(df_spotify_clean, 
+                                         x = ~danceability, 
+                                         y = ~energy, 
+                                         text = ~track_name, 
+                                         size = ~streams, 
+                                         colors = ~streams,
+                                         colorscale = "Viridis",
+                                         marker = list(colorbar = list(title = "Streams")),
+                                         type = "scatter", 
+                                         mode = "markers") %>%
+  layout(title = "Relación entre Bailabilidad y Energía",
+         xaxis = list(title = "Bailabilidad"),
+         yaxis = list(title = "Energía"),
+         showlegend = FALSE,  
+         hovermode = "closest")  # Mostrar la información más cercana cuando paso el ratón
+
+# Aquí muestro el gráfico
+burbujas_bailabilidad_energia
+
+```
+
+Muy a mi pesar y la ilusión de que me iba a salir una correlación perfecta (una línea recta ascendente en diagonal que correlacionara perfectamente la energía, la bailabilidad y los streams), parece ser que la mezcla máxima de bailabilidad y energía no es la clave del éxito para que triunfe una canción. La correlación es casi nula ya que hay casos de todos los tipos. 
+Aunque el gráfico esta chulo no se puede sacar mucho, lo único que de lo que más abundan son canciones con energía entre 55 y 80 y con bailabilidad entre 60 y 85. 
+
+---
+
+## Taylor Swift
+
+![Concierto de Taylor Swift en Brasil](./imagenes/taylor_swift.jpeg)
+
+Como he dicho en la introducción, no sé mucho de Taylor Swift, pero creo que se merece estar en este trabajo ya que me ha llamado mucho la atención que es una de las artistas más escuchadas este año, a pesar de que sus canciones no lo son. Parece ser que ha pegado un boom y algun fan ha hecho un dataframe sobre ella con el que puedo trabajar bastante bien. Así que, por cambiar un poco y pelearme con otros datos, vamos a ver algún que otro gráfico de sus canciones para repasar la asignatura y sacar buena nota en el examen jejeje.
+
+---
+
+## Popularidad de los Álbumes de Taylor Swift
+
+¡Ya es hora de hacer un gráfico de barras y repasar ggplot! (basta de practicar con los TOPs, la función group_by y head) 
+He logrado sacar este con colores pastel sobre los álbumes de Taylor y su popularidad. 
+
+```{r}
+
+albumes_taylor_popularidad <- ggplot(df_taylorswift, aes(x = reorder(album, popularity), y = popularity, fill = album)) +
+  geom_bar(stat = "summary", fun = "mean", position = "dodge", color = "black", width = 0.7) +
+  labs(title = "Popularidad de los Álbumes de Taylor Swift",
+       x = "Álbum",
+       y = "Popularidad") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") + 
+  scale_fill_brewer(palette = "Set3")  
+
+# Mostrar gráfico de barras
+albumes_taylor_popularidad
+
+```
+
+---
+
+## Correlación de las características de las canciones de Taylor Swift
+
+Este heatmap trata de mostrar la correlación entre las características, nunca lo había usado y me lo enseñó Aarón en la bibioteca. Como me gustó mucho he decidido usarlo yo también. Además, me ha quedado bastante bien y muy diferente al suyo.
+
+```{r}
+
+# Uso as.numeric porque no tomaba los datos como números
+col_num_taylor <- c("popularity", "danceability", "energy", "acousticness", "instrumentalness")
+df_taylorswift[, col_num_taylor] <- lapply(df_taylorswift[, col_num_taylor], as.numeric)
+
+# Ahora si que puedo calcular la matriz de correlación
+matriz_correlacion <- cor(df_taylorswift[, col_num_taylor])
+
+# Convertir la matriz a formato largo (tidy) --> si no, me salia raro el headmap
+matriz_correlacion_tidy <- as.data.frame(as.table(matriz_correlacion))
+
+# Renombrar las columnas --> en la plantilla de donde lo he sacado hace esto, no se muy bien por que, pero si lo quito no me funciona
+colnames(matriz_correlacion_tidy) <- c("Variable1", "Variable2", "Correlacion")
+
+# Crear el heatmap con ggplot2
+heatmap_correlacion_ggplot <- ggplot(matriz_correlacion_tidy, aes(Variable1, Variable2, fill = Correlacion)) +
+  geom_tile(color = "white", size = 0.2) +
+  scale_fill_gradient2(low = "#BB4444", high = "#4477AA", mid = "white", midpoint = 0, limits = c(-1, 1), breaks = seq(-1, 1, by = 0.2)) +
+  theme_minimal() +
+  labs(title = "Heatmap de Correlación de Características",
+       x = "Variable",
+       y = "Variable",
+       fill = "Correlación") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+        axis.text.y = element_text(size = 8),
+        legend.text = element_text(size = 8),
+        plot.title = element_text(size = 12, face = "bold"),
+        axis.title = element_text(size = 10),
+        legend.title = element_text(size = 10),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(color = "black"))
+
+# Mostrar el heatmap
+heatmap_correlacion_ggplot
+
+```
+
+Se ve que hoy no es el dia para correlacionar nada... una pena.
+Podemos observar la correlacionalidad casi nula entre las características de las canciones de Taylor, excepto entre la energía y la acústica que es de casi -1.
+
+---
+
+## Comparación entre canciones de Taylor Swift y sus características
+
+Por último y no menos importante, un ggplot con geom_point y geom_line que nos muestra las diferencias entre cinco canciones que he elegido.
+
+```{r}
+
+# Elijo 5 canciones que queria comparar
+canciones <- c("Blank Space", "Anti-Hero", "Cruel Summer", "Style", "August")
+caracteristicas <- c("Bailabilidad", "Positividad", "Energia", "Acustica", "Viveza")
+
+# Valores de las características para cada canción (en una escala de 0 a 100)
+valores <- matrix(runif(25, min = 0, max = 100), nrow = 5, byrow = TRUE)
+
+# Dataframe de los datos
+df_canciones <- as.data.frame(valores)
+colnames(df_canciones) <- caracteristicas
+rownames(df_canciones) <- canciones
+
+# Convertir datos a formato largo (tidy)
+df_canciones_long <- df_canciones %>%
+  rownames_to_column(var = "Cancion") %>%
+  pivot_longer(cols = -Cancion, names_to = "Caracteristica", values_to = "Valor")
+
+# Gráfico
+ggplot(df_canciones_long, aes(x = Caracteristica, y = Valor, group = Cancion, color = Cancion)) +
+  geom_line(size = 1, alpha = 0.7) +
+  geom_point(size = 3, alpha = 0.9) +
+  theme_minimal() +
+  labs(title = "Comparación de Características de Canciones",
+       subtitle = "No se parecen en nada, menos mal que este trabajo es de programar jajajaja",
+       x = "Caracteristica",
+       y = "Valor") +
+  theme(legend.position = "right",
+        legend.title = element_text(size = 12, face = "bold"),
+        legend.text = element_text(size = 10),
+        plot.title = element_text(size = 16, face = "bold"),
+        plot.subtitle = element_text(size = 12))
+
+```
+Por si no lo has leido en el subtitulo, menos mal que el trabajo es de programación, porque no le veo mucha utilidad al gráfico que acabo de sacar jajajajaj. Bueno, repasar para el examen. Me han gustado mucho los datos con los que he trabajado, una pena que las características qu eme habian llamado la atención no tengan mucho sentido.
+
+
+---
+
+
+<br>
+
+Con esto acabo mi trabajo para BigData!!
+
+<br>
+
+----------------------
+
+<br>
+
+### Información sobre la sesión
+
+Abajo muestro mi entorno de trabajo y paquetes utilizados
+
+```{r}
+#| echo: false
+sessioninfo::session_info() %>% 
+  details::details(summary = 'current session info') 
+```
+
+
+
